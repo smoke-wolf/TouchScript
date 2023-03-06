@@ -53,7 +53,7 @@ Touch:
  ## Usage
 
 Qrec
-Run `python3 qrec.py` to start recording your touch interactions.
+Run `sudo python3 qrec.py` to start recording your touch interactions.
 Press Esc to stop recording and save the output as a .touch file.
 
 TouchEditor
