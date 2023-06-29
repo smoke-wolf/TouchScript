@@ -47,14 +47,13 @@ class TouchScriptEditor(QMainWindow):
 
         # Highlighting rules
         self.highlighting_rules = []
-        self.highlighting_rules.append((r'\bwait\b', QColor('#56B6C2')))
-        self.highlighting_rules.append((r'\bhold\b', QColor('#F24B3C')))
-        self.highlighting_rules.append((r'\bclick\b', QColor('#FFC107')))
-        self.highlighting_rules.append((r'\bswipe\b', QColor('#5C5C5C')))
-        self.highlighting_rules.append((r'\bdoubleclick\b', QColor(0, 255, 0)))
-        self.highlighting_rules.append((r'\btype\b',QColor(0, 0, 255)))
-        self.highlighting_rules.append((r'\bhotkey\b', QColor(255, 0, 0)))
-
+        self.highlighting_rules.append((r'\bwait\b\s+arg\s*\(\s*(\d+)\s*\)', QColor('#56B6C2')))
+        self.highlighting_rules.append((r'\bhold\b\s+args\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)', QColor('#F24B3C')))
+        self.highlighting_rules.append((r'\bclick\b\s+args\s*\(\s*(\d+)\s*,\s*(\d+)\s*\)', QColor('#FFC107')))
+        self.highlighting_rules.append((r'\bswipe\b\s+args\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)', QColor(0, 255, 45)))
+        self.highlighting_rules.append((r'\bdoubleclick\b\s+args\s*\(\s*(\d+)\s*,\s*(\d+)\s*\)', QColor(0, 255, 0)))
+        self.highlighting_rules.append((r'\btype\b\s+([^\n]+)', QColor(0, 0, 255)))
+        self.highlighting_rules.append((r'\bhotkey\b\s+([^\n]+)', QColor(255, 0, 0)))
 
         # Set default font
         font = self.editor.document().defaultFont()
@@ -68,62 +67,54 @@ class TouchScriptEditor(QMainWindow):
         self.editor.clear()
 
     def open_file(self):
-        file_name, _ = QFileDialog.getOpenFileName(self, 'Open File', '', 'Touch Script (*.touch)')
+        file_name, _ = QFileDialog.getOpenFileName(self, 'Open file', '', 'Touch Script (.tch);;All Files (.*)')
         if file_name:
             with open(file_name, 'r') as f:
-                file_content = f.read()
-                self.editor.setPlainText(file_content)
+                file_contents = f.read()
+                self.editor.setPlainText(file_contents)
 
     def save_file(self):
-        file_name = getattr(self, 'file_name', None)
-        if file_name:
-            with open(file_name, 'w') as f:
-                f.write(self.editor.toPlainText())
+        if self.current_file:
+            self.save_to_file(self.current_file)
         else:
             self.save_as_file()
 
     def save_as_file(self):
-        file_name, _ = QFileDialog.getSaveFileName(self, 'Save File As', '', 'Touch Script (*.touch)')
+        file_name, _ = QFileDialog.getSaveFileName(self, 'Save As', '', 'Touch Script (*.tch);;All Files (*.*)')
         if file_name:
-            self.file_name = file_name
-            self.save_file()
+            self.current_file = file_name
+            self.save_to_file(self.current_file)
+
+    def save_to_file(self, file_name):
+        with open(file_name, 'w') as f:
+            f.write(self.editor.toPlainText())
 
     def highlight_current_line(self):
+        selection = QTextEdit.ExtraSelection()
+        line_color = QColor(Qt.yellow).lighter(160)
+        selection.format.setBackground(line_color)
+        selection.format.setProperty(QTextCharFormat.FullWidthSelection, True)
+        selection.cursor = self.editor.textCursor()
+        selection.cursor.clearSelection()
+        self.editor.setExtraSelections([selection])
+
+        # Highlight syntax
+        for pattern, color in self.highlighting_rules:
+            regex = re.compile(pattern)
+            matches = regex.finditer(self.editor.toPlainText())
+            for match in matches:
+                start = match.start()
+                end = match.end()
+                self.highlight(start, end, color)
+
+    def highlight(self, start, end, color):
         cursor = self.editor.textCursor()
-        line_number = cursor.blockNumber()
-        block = cursor.block()
-        text = block.text()
-
-        # Highlighting rules
-        color = QColor('#FFFFFF')  # Default color
-        for pattern, rule_color in self.highlighting_rules:
-            match = re.search(pattern, text)
-            if match:
-                color = rule_color
-
-        # Set current line text color
-        fmt = QTextCharFormat()
-        fmt.setForeground(color)
-        cursor.select(QTextCursor.LineUnderCursor)
-        cursor.mergeCharFormat(fmt)
-        cursor.clearSelection()
-
-    # Auto-complete
-    def keyPressEvent(self, event):
-        if event.key() == Qt.Key_Tab:
-            cursor = self.editor.textCursor()
-            cursor.movePosition(QTextCursor.StartOfLine)
-            cursor.select(QTextCursor.LineUnderCursor)
-            line = cursor.selectedText().strip()
-
-            for rule in self.highlighting_rules:
-                if rule[0] in line:
-                    command = rule[0].replace('\\b', '').replace('\\b', '').strip()
-                    self.editor.insertPlainText('\n' + command + ' ')
-                    return
-
-        super().keyPressEvent(event)
+        cursor.setPosition(start)
+        cursor.movePosition(QTextCursor.Right, QTextCursor.KeepAnchor, end - start)
+        format = QTextCharFormat()
+        format.setBackground(color)
+        cursor.setCharFormat(format)
 
 app = QApplication(sys.argv)
-window = TouchScriptEditor()
+ex = TouchScriptEditor()
 sys.exit(app.exec_())
