@@ -3,9 +3,14 @@ import sys
 import time
 import pyautogui
 
+loops = {}
+
 def execute_touch_script(lines):
-    for line in lines:
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
         if line.startswith('#'):  # check if the line starts with a comment symbol
+            i += 1
             continue  # skip the line if it's a comment
         tokens = line.split()
         if tokens[0] == 'wait':
@@ -46,8 +51,27 @@ def execute_touch_script(lines):
             pyautogui.moveTo(start_x, start_y)
             pyautogui.dragTo(end_x, end_y, duration=duration, button=button)
             print(f"Swiped from ({start_x}, {start_y}) to ({end_x}, {end_y})")
+        elif tokens[0] == 'loop':
+            loop_name = tokens[1]
+            loop_block = []
+            i += 1
+            while i < len(lines) and lines[i].strip() != 'endloop':
+                loop_block.append(lines[i].strip())
+                i += 1
+            loops[loop_name] = loop_block
+        elif tokens[0] == 'call':
+            loop_name = tokens[1]
+            count = int(tokens[2])
+            if loop_name in loops:
+                block = loops[loop_name]
+                for _ in range(count):
+                    execute_touch_script(block)
+            else:
+                print(f"Unknown loop: {loop_name}")
         else:
             print(f"Unknown command: {tokens[0]}")
+
+        i += 1
 
 
 def read_file_contents():
