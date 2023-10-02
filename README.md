@@ -21,6 +21,7 @@ TouchEditor:
 - Export edited scripts as .touch files.
 
 Touch:
+- g++ -o  touch Touch.cpp  -framework ApplicationServices
 - Executes .touch scripts.
 - Supports wait times, taps, double taps, long presses, swipes, scrolling, typing, hotkeys, and more.
 - Outputs feedback on executed commands.
