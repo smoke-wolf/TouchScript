@@ -1,6 +1,10 @@
 # TouchScript
 .touch is a lightweight and user-friendly scripting language designed to automate common tasks on your computer.
 
+
+> [!TIP]
+> Compile the .cpp file using `g++ -o touch touch.cpp -framework CoreFoundation -framework CoreGraphics` for macOS only
+
 📦 Three Scripts: Qrec, TouchEditor, Touch
 
 📝 Description:
